@@ -1,5 +1,14 @@
 
 
+function easeOutQuad(t, b, c, d) {
+    t /= d;
+    return -c * t * (t - 2) + b;
+}
+
+function easeOutSine(t, b, c, d) {
+    return c * Math.sin((t / d) * (Math.PI / 2)) + b;
+}
+
 export default class WaterTexture {
     constructor(options) {
         this.last = null;
@@ -67,7 +76,13 @@ export default class WaterTexture {
         }
         const radius = this.radius;
 
-        let intensity = 1.0 - point.age / this.maxAge;
+        let intensity = 1.0;
+
+        if (point.age < this.maxAge * 0.3) {
+            intensity = easeOutSine(point.age / (this.maxAge * 0.3), 0, 1, 1);
+        } else {
+            intensity = easeOutQuad(1 - (point.age - this.maxAge * 0.3) / (this.maxAge * 0.7), 0, 1, 1);
+        }
 
         let color = '255,255,255';
         let offset = this.width * 5.0;
