@@ -2,6 +2,7 @@
 
 export default class WaterTexture {
     constructor(options) {
+        this.last = null;
         this.maxAge = 64;
         this.points = [];
         this.radius = this.size * 0.1;
@@ -22,7 +23,35 @@ export default class WaterTexture {
     }
 
     addPoint(point) {
-        this.points.push({ x: point.x, y: point.y, age: 0 });
+        let force = 0;
+        let vx = 0;
+        let vy = 0;
+        const last = this.last;
+
+        if (last) {
+            const diffX = point.x - last.x;
+            const diffY = point.y - last.y;
+            const distance = Math.sqrt(diffX * diffX + diffY * diffY);
+
+            vx = diffX / distance;
+            vy = diffY / distance;
+
+            force = Math.min(distance * 10000, 1.0);
+        }
+
+        this.last = {
+            x: point.x,
+            y: point.y
+        };
+
+        this.points.push({
+            x: point.x,
+            y: point.y,
+            age: 0,
+            force: force,
+            vx: vx,
+            vy: vy,
+        });
     }
 
     clear() {
@@ -63,12 +92,20 @@ export default class WaterTexture {
 
     update() {
         this.clear();
+        let agePart = 1.0 / this.maxAge;
+
         this.points.forEach((point, index) => {
-            point.age += 1;
+            point.age++;
 
             if (point.age > this.maxAge) {
                 this.points.splice(index, 1);
             } else {
+                let slowAsOlder = (1.0 - point.age / this.maxAge);
+                let force = point.force * agePart * slowAsOlder;
+
+                point.x += point.vx * force;
+                point.y += point.vy * force;
+
                 this.drawPoint(point);
             }
         });
