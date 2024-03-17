@@ -1,0 +1,22 @@
+{
+    "name": "threejs-template",
+    "version": "1.0.0",
+    "description": "Learning ThreeJS",
+    "main": "index.js",
+    "scripts": {
+        "build": "npx vite build --base=/test/",
+        "serve": "npx vite",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Siegfried Nowhere <sigifredo89@gmail.com>",
+    "license": "MIT",
+    "dependencies": {
+        "cannon": "^0.6.2",
+        "gsap": "^3.11.5",
+        "lil-gui": "^0.18.1",
+        "three": "^0.152.2"
+    },
+    "devDependencies": {
+        "vite": "^4.3.8"
+    }
+}
