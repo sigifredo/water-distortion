@@ -1,5 +1,7 @@
 
 
+import * as THREE from "three";
+
 function easeOutQuad(t, b, c, d) {
     t /= d;
     return -c * t * (t - 2) + b;
@@ -21,7 +23,7 @@ export default class WaterTexture {
         if (options.debug) {
             this.width = window.innerWidth;
             this.height = window.innerHeight;
-            this.radius = this.width * 0.05;
+            this.radius = this.width * 0.1;
         }
 
         this.initTexture();
@@ -40,12 +42,14 @@ export default class WaterTexture {
         if (last) {
             const diffX = point.x - last.x;
             const diffY = point.y - last.y;
-            const distance = Math.sqrt(diffX * diffX + diffY * diffY);
+
+            const distanceSquared = diffX * diffX + diffY * diffY;
+            const distance = Math.sqrt(distanceSquared);
 
             vx = diffX / distance;
             vy = diffY / distance;
 
-            force = Math.min(distance * 10000, 1.0);
+            force = Math.min(distanceSquared * 10000, 1);
         }
 
         this.last = {
@@ -73,26 +77,39 @@ export default class WaterTexture {
         let pos = {
             x: point.x * this.width,
             y: point.y * this.height
-        }
-        const radius = this.radius;
+        };
 
-        let intensity = 1.0;
+        const radius = this.radius;
+        let intensity = 1;
 
         if (point.age < this.maxAge * 0.3) {
             intensity = easeOutSine(point.age / (this.maxAge * 0.3), 0, 1, 1);
         } else {
-            intensity = easeOutQuad(1 - (point.age - this.maxAge * 0.3) / (this.maxAge * 0.7), 0, 1, 1);
+            intensity = easeOutQuad(
+                1 - (point.age - this.maxAge * 0.3) / (this.maxAge * 0.7),
+                0,
+                1,
+                1
+            );
         }
 
-        let color = '255,255,255';
-        let offset = this.width * 5.0;
+        intensity *= point.force;
+
+        let red = ((point.vx + 1) / 2) * 255;
+        let green = ((point.vy + 1) / 2) * 255;
+        let blue = intensity * 255;
+        let color = `${red}, ${green}, ${blue}`;
+
+        let offset = this.width * 5;
+        // 1. Give the shadow a high offset.
         this.ctx.shadowOffsetX = offset;
         this.ctx.shadowOffsetY = offset;
         this.ctx.shadowBlur = radius * 1;
-        this.ctx.shadowColor = `rgba(${color}, ${0.2 * intensity})`;
+        this.ctx.shadowColor = `rgba(${color},${0.2 * intensity})`;
 
         this.ctx.beginPath();
         this.ctx.fillStyle = "rgba(255,0,0,1)";
+        // 2. Move the circle to the other direction of the offset
         this.ctx.arc(pos.x - offset, pos.y - offset, radius, 0, Math.PI * 2);
         this.ctx.fill();
     }
@@ -102,6 +119,7 @@ export default class WaterTexture {
         this.canvas.width = this.width;
         this.canvas.height = this.height;
         this.ctx = this.canvas.getContext('2d');
+        this.texture = new THREE.Texture(this.canvas);
         this.clear();
     }
 
@@ -115,7 +133,7 @@ export default class WaterTexture {
             if (point.age > this.maxAge) {
                 this.points.splice(index, 1);
             } else {
-                let slowAsOlder = (1.0 - point.age / this.maxAge);
+                let slowAsOlder = 1.0 - point.age / this.maxAge;
                 let force = point.force * agePart * slowAsOlder;
 
                 point.x += point.vx * force;
@@ -124,5 +142,7 @@ export default class WaterTexture {
                 this.drawPoint(point);
             }
         });
+
+        this.texture.needsUpdate = true;
     }
 }
